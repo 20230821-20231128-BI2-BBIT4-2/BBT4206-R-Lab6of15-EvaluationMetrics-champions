@@ -148,6 +148,8 @@ if (require("dplyr")) {
                    repos = "https://cloud.r-project.org")
 }
 
+library(readr)
+
 # 1. Accuracy and Cohen's Kappa ----
 # Introduction ----
 # The choice of evaluation metric depends on the specific problem,
@@ -255,9 +257,9 @@ fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
 # 0 refers to "no fit" and 1 refers to a "perfect fit".
 
 ## 2.a. Load the dataset ----
-data(longley)
-summary(longley)
-longley_no_na <- na.omit(longley)
+Student_Marks <- read_csv("data/Student_Marks.csv")
+View(Student_Marks)
+student_no_na <- na.omit(Student_Marks)
 
 ## 2.b. Split the dataset ----
 # Define a train:test data split of the dataset. Such that 10/16 are in the
@@ -272,9 +274,9 @@ set.seed(7)
 
 # We apply simple random sampling using the base::sample function to get
 # 10 samples
-train_index <- sample(1:dim(longley)[1], 10) # nolint: seq_linter.
-longley_train <- longley[train_index, ]
-longley_test <- longley[-train_index, ]
+train_index <- sample(1:dim(Student_Marks)[1], 10) # nolint: seq_linter.
+Student_Marks_train <- Student_Marks[train_index, ]
+Student_Marks_test <- Student_Marks[-train_index, ]
 
 ## 2.c. Train the Model ----
 # We apply bootstrapping with 1,000 repetitions
@@ -282,8 +284,8 @@ train_control <- trainControl(method = "boot", number = 1000)
 
 # We then train a linear regression model to predict the value of Employed
 # (the number of people that will be employed given the independent variables).
-longley_model_lm <-
-  train(Employed ~ ., data = longley_train,
+Student_Marks_model_lm <-
+  train(Marks ~ ., data = Student_Marks_train,
         na.action = na.omit, method = "lm", metric = "RMSE",
         trControl = train_control)
 
@@ -292,28 +294,28 @@ longley_model_lm <-
 # The results show an RMSE value of approximately 4.3898 and
 # an R Squared value of approximately 0.8594
 # (the closer the R squared value is to 1, the better the model).
-print(longley_model_lm)
+print(Student_Marks_model_lm)
 
 ### Option 2: Compute the metric yourself using the test dataset ----
-predictions <- predict(longley_model_lm, longley_test[, 1:6])
+predictions <- predict(Student_Marks_model_lm, Student_Marks_test[, 1:2])
 
 # These are the 6 values for employment that the model has predicted:
 print(predictions)
 
 #### RMSE ----
-rmse <- sqrt(mean((longley_test$Employed - predictions)^2))
+rmse <- sqrt(mean((Student_Marks_test$Marks - predictions)^2))
 print(paste("RMSE =", rmse))
 
 #### SSR ----
 # SSR is the sum of squared residuals (the sum of squared differences
 # between observed and predicted values)
-ssr <- sum((longley_test$Employed - predictions)^2)
+ssr <- sum((Student_Marks_test$Marks - predictions)^2)
 print(paste("SSR =", ssr))
 
 #### SST ----
 # SST is the total sum of squares (the sum of squared differences
 # between observed values and their mean)
-sst <- sum((longley_test$Employed - mean(longley_test$Employed))^2)
+sst <- sum((Student_Marks_test$Marks - mean(Student_Marks_test$Marks))^2)
 print(paste("SST =", sst))
 
 #### R Squared ----
@@ -330,7 +332,7 @@ print(paste("R Squared =", r_squared))
 # interpret. For example, if you are predicting the amount paid in rent,
 # and the MAE is KES. 10,000, it means, on average, your model's predictions
 # are off by about KES. 10,000.
-absolute_errors <- abs(predictions - longley_test$Employed)
+absolute_errors <- abs(predictions - Student_Marks_test$Marks)
 mae <- mean(absolute_errors)
 print(paste("MAE =", mae))
 
@@ -355,21 +357,26 @@ print(paste("MAE =", mae))
 
 ## 3.a. Load the dataset ----
 data(PimaIndiansDiabetes)
+library(readr)
+Customer_Churn <- read_csv("data/Customer Churn.csv")
+Customer_Churn$Churn <- ifelse(Customer_Churn$Churn == 0, "No", "Yes")
+
+View(Customer_Churn)
 ## 3.b. Determine the Baseline Accuracy ----
 # The baseline accuracy is 65%.
 
-pima_indians_diabetes_freq <- PimaIndiansDiabetes$diabetes
+Customer_Churn_freq <- Customer_Churn$Churn
 cbind(frequency =
-        table(pima_indians_diabetes_freq),
-      percentage = prop.table(table(pima_indians_diabetes_freq)) * 100)
+        table(Customer_Churn_freq),
+      percentage = prop.table(table(Customer_Churn_freq)) * 100)
 
 ## 3.c. Split the dataset ----
 # Define an 80:20 train:test data split of the dataset.
-train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+train_index <- createDataPartition(Customer_Churn$Churn,
                                    p = 0.8,
                                    list = FALSE)
-pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
-pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+Customer_Churn_train <- Customer_Churn[train_index, ]
+Customer_Churns_test <- Customer_Churn[-train_index, ]
 
 ## 3.d. Train the Model ----
 # We apply the 10-fold cross validation resampling method
@@ -381,8 +388,8 @@ train_control <- trainControl(method = "cv", number = 10,
 # (whether the patient will test positive/negative for diabetes).
 
 set.seed(7)
-diabetes_model_knn <-
-  train(diabetes ~ ., data = pima_indians_diabetes_train, method = "knn",
+churn_model_knn <-
+  train(Churn ~ ., data = Customer_Churn_train, method = "knn",
         metric = "ROC", trControl = train_control)
 
 ## 3.e. Display the Model's Performance ----
@@ -391,17 +398,17 @@ diabetes_model_knn <-
 # the higher the prediction accuracy) when the parameter k = 9
 # (9 nearest neighbours).
 
-print(diabetes_model_knn)
+print(churn_model_knn)
 
 ### Option 2: Compute the metric yourself using the test dataset ----
 #### Sensitivity and Specificity ----
-predictions <- predict(diabetes_model_knn, pima_indians_diabetes_test[, 1:8])
+predictions <- predict(churn_model_knn, Customer_Churns_test[, 1:13])
 # These are the values for diabetes that the
 # model has predicted:
 print(predictions)
 confusion_matrix <-
   caret::confusionMatrix(predictions,
-                         pima_indians_diabetes_test[, 1:9]$diabetes)
+                         as.factor(Customer_Churns_test[, 1:14]$Churn))
 
 # We can see the sensitivity (≈ 0.86) and the specificity (≈ 0.60) below:
 print(confusion_matrix)
@@ -409,7 +416,7 @@ print(confusion_matrix)
 #### AUC ----
 # The type = "prob" argument specifies that you want to obtain class
 # probabilities as the output of the prediction instead of class labels.
-predictions <- predict(diabetes_model_knn, pima_indians_diabetes_test[, 1:8],
+predictions <- predict(churn_model_knn, Customer_Churns_test[, 1:13],
                        type = "prob")
 
 # These are the class probability values for diabetes that the
@@ -426,7 +433,7 @@ print(predictions)
 # specifies how you define which class is considered the positive class (cases)
 # and which is considered the negative class (controls) when calculating
 # sensitivity and specificity.
-roc_curve <- roc(pima_indians_diabetes_test$diabetes, predictions$neg)
+roc_curve <- roc(Customer_Churns_test$Churn, predictions$No)
 
 # Plot the ROC curve
 plot(roc_curve, main = "ROC Curve for KNN Model", print.auc = TRUE,
@@ -456,7 +463,9 @@ plot(roc_curve, main = "ROC Curve for KNN Model", print.auc = TRUE,
 
 ########################### ----
 ## 4.a. Load the dataset ----
-data(iris)
+library(readr)
+Crop_recommendation <- read_csv("data/Crop_recommendation.csv")
+View(Crop_recommendation)
 
 ## 4.b. Train the Model ----
 # We apply the 5-fold repeated cross validation resampling method
@@ -468,14 +477,14 @@ set.seed(7)
 # This creates a CART model. One of the parameters used by a CART model is "cp".
 # "cp" refers to the "complexity parameter". It is used to impose a penalty to
 # the tree for having too many splits. The default value is 0.01.
-iris_model_cart <- train(Species ~ ., data = iris, method = "rpart",
+crop_model_cart <- train(label ~ ., data = Crop_recommendation, method = "rpart",
                          metric = "logLoss", trControl = train_control)
 
 ## 4.c. Display the Model's Performance ----
 ### Option 1: Use the metric calculated by caret when training the model ----
 # The results show that a cp value of ≈ 0 resulted in the lowest
 # LogLoss value. The lowest logLoss value is ≈ 0.46.
-print(iris_model_cart)
+print(crop_model_cart)
 
 # [OPTIONAL] **Deinitialization: Create a snapshot of the R environment ----
 # Lastly, as a follow-up to the initialization step, record the packages
