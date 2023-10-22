@@ -127,6 +127,7 @@ if (require("languageserver")) {
 # For example, instead of Red are 50 instances and Blue are 50 instances,
 # the distribution can be that Red are 70 instances and Blue are 30 instances.
 
+
 # STEP 1. Install and Load the Required Packages ----
 ## ggplot2 ----
 if (require("ggplot2")) {
@@ -255,25 +256,13 @@ fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
 # 0 refers to "no fit" and 1 refers to a "perfect fit".
 
 ## 2.a. Load the dataset ----
-library(readr)
-Crop_recommendation <- read_csv("data/Crop_recommendation.csv")
-View(Crop_recommendation)
-
-#census$workclass<-as.numeric(factor(census$workclass,levels=unique(census$workclass)))
-#census$education_level<-as.numeric(factor(census$education_level,levels=unique(census$education_level)))
-#census$marital_status<-as.numeric(factor(census$marital_status,levels=unique(census$marital_status)))
-#census$occupation<-as.numeric(factor(census$occupation,levels=unique(census$occupation)))
-#census$race<-as.numeric(factor(census$race,levels=unique(census$race)))
-#census$sex<-as.numeric(factor(census$sex,levels=unique(census$sex)))
-#census$native_country<-as.numeric(factor(census$native_country,levels=unique(census$native_country)))
-#census$relationship<-as.numeric(factor(census$relationship,levels=unique(census$relationship)))
-
-print(Crop_recommendation)
-Crop_recommendation_no_na <- na.omit(Crop_recommendation)
+Student_Marks <- read_csv("data/Student_Marks.csv")
+View(Student_Marks)
+student_no_na <- na.omit(Student_Marks)
 
 ## 2.b. Split the dataset ----
-# Define a train:test data split of the dataset. Such that 10/14 are in the
-# train set and the remaining 8/14 observations are in the test set.
+# Define a train:test data split of the dataset. Such that 10/16 are in the
+# train set and the remaining 6/16 observations are in the test set.
 
 # In this case, we split randomly without using a predictor variable in the
 # caret::createDataPartition function.
@@ -283,20 +272,19 @@ Crop_recommendation_no_na <- na.omit(Crop_recommendation)
 set.seed(7)
 
 # We apply simple random sampling using the base::sample function to get
-# 13 samples
-train_index <- sample(1:dim(Crop_recommendation)[1], 7) # nolint: seq_linter.
-Crop_recommendation_train <- Crop_recommendation[train_index, ]
-Crop_recommendation_test <- Crop_recommendation[-train_index, ]
+# 10 samples
+train_index <- sample(1:dim(Student_Marks)[1], 10) # nolint: seq_linter.
+Student_Marks_train <- Student_Marks[train_index, ]
+Student_Marks_test <- Student_Marks[-train_index, ]
 
 ## 2.c. Train the Model ----
 # We apply bootstrapping with 1,000 repetitions
-sapply(Crop_recommendation, class)
 train_control <- trainControl(method = "boot", number = 1000)
 
 # We then train a linear regression model to predict the value of Employed
 # (the number of people that will be employed given the independent variables).
-Crop_recommendation_model_lm <-
-  train(quality ~ ., data = Crop_recommendation_train,
+Student_Marks_model_lm <-
+  train(Marks ~ ., data = Student_Marks_train,
         na.action = na.omit, method = "lm", metric = "RMSE",
         trControl = train_control)
 
@@ -305,28 +293,28 @@ Crop_recommendation_model_lm <-
 # The results show an RMSE value of approximately 4.3898 and
 # an R Squared value of approximately 0.8594
 # (the closer the R squared value is to 1, the better the model).
-print(Crop_recommendation_model_lm)
+print(Student_Marks_model_lm)
 
 ### Option 2: Compute the metric yourself using the test dataset ----
-predictions <- predict(Crop_recommendation_model_lm, Crop_recommendation_test[, 1:2])
+predictions <- predict(Student_Marks_model_lm, Student_Marks_test[, 1:2])
 
 # These are the 6 values for employment that the model has predicted:
 print(predictions)
 
 #### RMSE ----
-rmse <- sqrt(mean((Crop_recommendation_test$quality - predictions)^2))
+rmse <- sqrt(mean((Student_Marks_test$Marks - predictions)^2))
 print(paste("RMSE =", rmse))
 
 #### SSR ----
 # SSR is the sum of squared residuals (the sum of squared differences
 # between observed and predicted values)
-ssr <- sum((Crop_recommendation$quality - predictions)^2)
+ssr <- sum((Student_Marks_test$Marks - predictions)^2)
 print(paste("SSR =", ssr))
 
 #### SST ----
 # SST is the total sum of squares (the sum of squared differences
 # between observed values and their mean)
-sst <- sum((Crop_recommendation_test$quality - mean(Crop_recommendation_test$quality))^2)
+sst <- sum((Student_Marks_test$Marks - mean(Student_Marks_test$Marks))^2)
 print(paste("SST =", sst))
 
 #### R Squared ----
@@ -343,7 +331,7 @@ print(paste("R Squared =", r_squared))
 # interpret. For example, if you are predicting the amount paid in rent,
 # and the MAE is KES. 10,000, it means, on average, your model's predictions
 # are off by about KES. 10,000.
-absolute_errors <- abs(predictions - Crop_recommendation_test$quality)
+absolute_errors <- abs(predictions - Student_Marks_test$Marks)
 mae <- mean(absolute_errors)
 print(paste("MAE =", mae))
 
@@ -367,25 +355,27 @@ print(paste("MAE =", mae))
 #         rate.
 
 ## 3.a. Load the dataset ----
+data(PimaIndiansDiabetes)
 library(readr)
-WineQT <- read_csv("data/WineQT.csv")
-View(WineQT)
+Customer_Churn <- read_csv("data/Customer Churn.csv")
+Customer_Churn$Churn <- ifelse(Customer_Churn$Churn == 0, "No", "Yes")
 
+View(Customer_Churn)
 ## 3.b. Determine the Baseline Accuracy ----
 # The baseline accuracy is 65%.
 
-WineQT_freq <- WineQT$quality
+Customer_Churn_freq <- Customer_Churn$Churn
 cbind(frequency =
-        table(WineQT_freq),
-      percentage = prop.table(table(WineQT_freq)) * 100)
+        table(Customer_Churn_freq),
+      percentage = prop.table(table(Customer_Churn_freq)) * 100)
 
 ## 3.c. Split the dataset ----
 # Define an 80:20 train:test data split of the dataset.
-train_index <- createDataPartition(WineQT$quality,
+train_index <- createDataPartition(Customer_Churn$Churn,
                                    p = 0.8,
                                    list = FALSE)
-WineQT_train <- WineQT[train_index, ]
-WineQT_test <- WineQT[-train_index, ]
+Customer_Churn_train <- Customer_Churn[train_index, ]
+Customer_Churns_test <- Customer_Churn[-train_index, ]
 
 ## 3.d. Train the Model ----
 # We apply the 10-fold cross validation resampling method
@@ -393,12 +383,12 @@ train_control <- trainControl(method = "cv", number = 10,
                               classProbs = TRUE,
                               summaryFunction = twoClassSummary)
 
-# We then train a k Nearest Neighbours Model to predict the value of quality
-# (whether the patient will test positive/negative for quality).
+# We then train a k Nearest Neighbours Model to predict the value of Diabetes
+# (whether the patient will test positive/negative for diabetes).
 
 set.seed(7)
-quality_model_knn <-
-  train(quality ~ ., data = WineQT_train, method = "knn",
+churn_model_knn <-
+  train(Churn ~ ., data = Customer_Churn_train, method = "knn",
         metric = "ROC", trControl = train_control)
 
 ## 3.e. Display the Model's Performance ----
@@ -407,28 +397,28 @@ quality_model_knn <-
 # the higher the prediction accuracy) when the parameter k = 9
 # (9 nearest neighbours).
 
-print(quality_model_knn)
+print(churn_model_knn)
 
 ### Option 2: Compute the metric yourself using the test dataset ----
 #### Sensitivity and Specificity ----
-predictions <- predict(quality_model_knn, WineQT_test[, 1:12])
-# These are the values for quality that the
+predictions <- predict(churn_model_knn, Customer_Churns_test[, 1:13])
+# These are the values for diabetes that the
 # model has predicted:
 print(predictions)
 confusion_matrix <-
   caret::confusionMatrix(predictions,
-                         WineQT_test[, 1:13]$quality)
+                         as.factor(Customer_Churns_test[, 1:14]$Churn))
 
 # We can see the sensitivity (≈ 0.86) and the specificity (≈ 0.60) below:
 print(confusion_matrix)
 
 #### AUC ----
 # The type = "prob" argument specifies that you want to obtain class
-# probabilities as the output of the prediction instead of class qualitys.
-predictions <- predict(quality_model_knn, WineQT_test[, 1:13],
+# probabilities as the output of the prediction instead of class labels.
+predictions <- predict(churn_model_knn, Customer_Churns_test[, 1:13],
                        type = "prob")
 
-# These are the class probability values for quality that the
+# These are the class probability values for diabetes that the
 # model has predicted:
 print(predictions)
 
@@ -442,9 +432,130 @@ print(predictions)
 # specifies how you define which class is considered the positive class (cases)
 # and which is considered the negative class (controls) when calculating
 # sensitivity and specificity.
-roc_curve <- roc(WineQT_test$quality, predictions$neg)
+roc_curve <- roc(Customer_Churns_test$Churn, predictions$No)
 
 # Plot the ROC curve
 plot(roc_curve, main = "ROC Curve for KNN Model", print.auc = TRUE,
      print.auc.x = 0.6, print.auc.y = 0.6, col = "blue", lwd = 2.5)
 
+# 4. Logarithmic Loss (LogLoss) ----
+# Logarithmic Loss (LogLoss) is an evaluation metric commonly used for
+# assessing the performance of classification models, especially when the model
+# provides probability estimates for each class.
+
+# LogLoss measures how well the predicted probabilities align with the true
+# binary outcomes.
+
+# In *binary classification*, the LogLoss formula for a single observation is:
+# LogLoss = −(y log(p) + (1 − y)log(1 − p))
+
+# Where:
+# [*] y is the true binary label (0 or 1).
+# [*] p is the predicted probability of the positive class.
+
+# The LogLoss formula computes the logarithm of the predicted probability for
+# the true class (if y = 1) or the logarithm of the predicted probability for
+# the negative class (if y = 0), and then sums the results.
+
+# A lower LogLoss indicates better model performance, where perfect predictions
+# result in a LogLoss of 0.
+
+########################### ----
+## 4.a. Load the dataset ----
+library(readr)
+Crop_recommendation <- read_csv("data/Crop_recommendation.csv")
+View(Crop_recommendation)
+
+## 4.b. Train the Model ----
+# We apply the 5-fold repeated cross validation resampling method
+# with 3 repeats
+train_control <- trainControl(method = "repeatedcv", number = 5, repeats = 3,
+                              classProbs = TRUE,
+                              summaryFunction = mnLogLoss)
+set.seed(7)
+# This creates a CART model. One of the parameters used by a CART model is "cp".
+# "cp" refers to the "complexity parameter". It is used to impose a penalty to
+# the tree for having too many splits. The default value is 0.01.
+crop_model_cart <- train(label ~ ., data = Crop_recommendation, method = "rpart",
+                         metric = "logLoss", trControl = train_control)
+
+## 4.c. Display the Model's Performance ----
+### Option 1: Use the metric calculated by caret when training the model ----
+# The results show that a cp value of ≈ 0 resulted in the lowest
+# LogLoss value. The lowest logLoss value is ≈ 0.46.
+print(crop_model_cart)
+
+# [OPTIONAL] **Deinitialization: Create a snapshot of the R environment ----
+# Lastly, as a follow-up to the initialization step, record the packages
+# installed and their sources in the lockfile so that other team-members can
+# use renv::restore() to re-install the same package version in their local
+# machine during their initialization step.
+# renv::snapshot() # nolint
+
+# References ----
+
+## Kuhn, M., Wing, J., Weston, S., Williams, A., Keefer, C., Engelhardt, A., Cooper, T., Mayer, Z., Kenkel, B., R Core Team, Benesty, M., Lescarbeau, R., Ziem, A., Scrucca, L., Tang, Y., Candan, C., & Hunt, T. (2023). caret: Classification and Regression Training (6.0-94) [Computer software]. https://cran.r-project.org/package=caret # nolint ----
+
+## Leisch, F., & Dimitriadou, E. (2023). mlbench: Machine Learning Benchmark Problems (2.1-3.1) [Computer software]. https://cran.r-project.org/web/packages/mlbench/index.html # nolint ----
+
+## National Institute of Diabetes and Digestive and Kidney Diseases. (1999). Pima Indians Diabetes Dataset [Dataset]. UCI Machine Learning Repository. https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database # nolint ----
+
+## Robin, X., Turck, N., Hainard, A., Tiberti, N., Lisacek, F., Sanchez, J.-C., Müller, M., Siegert, S., Doering, M., & Billings, Z. (2023). pROC: Display and Analyze ROC Curves (1.18.4) [Computer software]. https://cran.r-project.org/web/packages/pROC/index.html # nolint ----
+
+## Wickham, H., François, R., Henry, L., Müller, K., Vaughan, D., Software, P., & PBC. (2023). dplyr: A Grammar of Data Manipulation (1.1.3) [Computer software]. https://cran.r-project.org/package=dplyr # nolint ----
+
+## Wickham, H., Chang, W., Henry, L., Pedersen, T. L., Takahashi, K., Wilke, C., Woo, K., Yutani, H., Dunnington, D., Posit, & PBC. (2023). ggplot2: Create Elegant Data Visualisations Using the Grammar of Graphics (3.4.3) [Computer software]. https://cran.r-project.org/package=ggplot2 # nolint ----
+
+# **Required Lab Work Submission** ----
+## Part A ----
+# Create a new file called
+# "Lab6-Submission-EvaluationMetrics.R".
+# Provide all the code you have used to demonstrate the classification and
+# regression evaluation metrics we have gone through in this lab.
+# This should be done on any datasets of your choice except the ones used in
+# this lab.
+
+## Part B ----
+# Upload *the link* to your
+# "Lab6-Submission-EvaluationMetrics.R" hosted
+# on Github (do not upload the .R file itself) through the submission link
+# provided on eLearning.
+
+## Part C ----
+# Create a markdown file called "Lab-Submission-Markdown.Rmd"
+# and place it inside the folder called "markdown". Use R Studio to ensure the
+# .Rmd file is based on the "GitHub Document (Markdown)" template when it is
+# being created.
+
+# Refer to the following file in Lab 1 for an example of a .Rmd file based on
+# the "GitHub Document (Markdown)" template:
+#     https://github.com/course-files/BBT4206-R-Lab1of15-LoadingDatasets/blob/main/markdown/BIProject-Template.Rmd # nolint
+
+# Include Line 1 to 14 of BIProject-Template.Rmd in your .Rmd file to make it
+# displayable on GitHub when rendered into its .md version
+
+# It should have code chunks that explain all the steps performed on the
+# datasets.
+
+## Part D ----
+# Render the .Rmd (R markdown) file into its .md (markdown) version by using
+# knitR in RStudio.
+
+# You need to download and install "pandoc" to render the R markdown.
+# Pandoc is a file converter that can be used to convert the following files:
+#   https://pandoc.org/diagram.svgz?v=20230831075849
+
+# Documentation:
+#   https://pandoc.org/installing.html and
+#   https://github.com/REditorSupport/vscode-R/wiki/R-Markdown
+
+# By default, Rmd files are open as Markdown documents. To enable R Markdown
+# features, you need to associate *.Rmd files with rmd language.
+# Add an entry Item "*.Rmd" and Value "rmd" in the VS Code settings,
+# "File Association" option.
+
+# Documentation of knitR: https://www.rdocumentation.org/packages/knitr/
+
+# Upload *the link* to "Lab-Submission-Markdown.md" (not .Rmd)
+# markdown file hosted on Github (do not upload the .Rmd or .md markdown files)
+# through the submission link provided on eLearning.
