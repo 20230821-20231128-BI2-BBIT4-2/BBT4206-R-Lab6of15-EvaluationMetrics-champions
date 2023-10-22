@@ -105,7 +105,27 @@ if (require("languageserver")) {
                    repos = "https://cloud.r-project.org")
 }
 
+# Introduction ----
+# The choice of evaluation metric depends on the specific problem,
+# the characteristics of the data, and the goals of the modeling task.
+# It's often a good practice to use multiple evaluation metrics to gain a more
+# comprehensive understanding of a model's performance.
 
+# There are several evaluation metrics that can be used to evaluate algorithms.
+# The default metrics used are:
+## (1) "Accuracy" for classification problems and
+## (2) "RMSE" for regression problems
+
+# Accuracy is the percentage of correctly classified instances out of all
+# instances. Accuracy is more useful in binary classification problems than
+# in multi-class classification problems.
+
+# On the other hand, Cohen's Kappa is similar to Accuracy however, it is more
+# useful on classification problems that do not have an equal distribution of
+# instances amongst the classes in the dataset.
+
+# For example, instead of Red are 50 instances and Blue are 50 instances,
+# the distribution can be that Red are 70 instances and Blue are 30 instances.
 
 # STEP 1. Install and Load the Required Packages ----
 ## ggplot2 ----
@@ -149,29 +169,10 @@ if (require("dplyr")) {
 }
 
 # 1. Accuracy and Cohen's Kappa ----
-# Introduction ----
-# The choice of evaluation metric depends on the specific problem,
-# the characteristics of the data, and the goals of the modeling task.
-# It's often a good practice to use multiple evaluation metrics to gain a more
-# comprehensive understanding of a model's performance.
-
-# There are several evaluation metrics that can be used to evaluate algorithms.
-# The default metrics used are:
-## (1) "Accuracy" for classification problems and
-## (2) "RMSE" for regression problems
-
-# Accuracy is the percentage of correctly classified instances out of all
-# instances. Accuracy is more useful in binary classification problems than
-# in multi-class classification problems.
-
-# On the other hand, Cohen's Kappa is similar to Accuracy however, it is more
-# useful on classification problems that do not have an equal distribution of
-# instances amongst the classes in the dataset.
-
-# For example, instead of Red are 50 instances and Blue are 50 instances,
-# the distribution can be that Red are 70 instances and Blue are 30 instances.
 ## 1.a. Load the dataset ----
-data(PimaIndiansDiabetes)
+library(readr)
+census <- read_csv("data/census.csv")
+View(census)
 
 ## 1.b. Determine the Baseline Accuracy ----
 # Identify the number of instances that belong to each class (distribution or
@@ -185,20 +186,21 @@ data(PimaIndiansDiabetes)
 
 # This in turn implies that the baseline accuracy is 65%.
 
-pima_indians_diabetes_freq <- PimaIndiansDiabetes$diabetes
+census_freq <- census$income
 cbind(frequency =
-        table(pima_indians_diabetes_freq),
-      percentage = prop.table(table(pima_indians_diabetes_freq)) * 100)
+        table(census_freq),
+      percentage = prop.table(table(census_freq)) * 100)
 
 ## 1.c. Split the dataset ----
 # Define a 75:25 train:test data split of the dataset.
 # That is, 75% of the original data will be used to train the model and
 # 25% of the original data will be used to test the model.
-train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+train_index <- createDataPartition(census$income,
                                    p = 0.75,
                                    list = FALSE)
-pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
-pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+census_train <- census[train_index, ]
+census_test <- census[-train_index, ]
 
 ## 1.d. Train the Model ----
 # We apply the 5-fold cross validation resampling method
@@ -211,15 +213,15 @@ train_control <- trainControl(method = "cv", number = 5)
 # random number generator to a specific value. This ensures that every time you
 # run the same code, you will get the same "random" numbers.
 set.seed(7)
-diabetes_model_glm <-
-  train(diabetes ~ ., data = pima_indians_diabetes_train, method = "glm",
+census_model_glm <-
+  train(income ~ ., data = census_train, method = "glm",
         metric = "Accuracy", trControl = train_control)
 
 ## 1.e. Display the Model's Performance ----
 ### Option 1: Use the metric calculated by caret when training the model ----
 # The results show an accuracy of approximately 77% (slightly above the baseline
 # accuracy) and a Kappa of approximately 49%.
-print(diabetes_model_glm)
+print(census_model_glm)
 
 ### Option 2: Compute the metric yourself using the test dataset ----
 # A confusion matrix is useful for multi-class classification problems.
@@ -230,10 +232,11 @@ print(diabetes_model_glm)
 # confusion matrix represent predicted values and column headers are used to
 # represent actual values.
 
-predictions <- predict(diabetes_model_glm, pima_indians_diabetes_test[, 1:8])
+predictions <- predict(census_model_glm, census_test[, 1:13])
+
 confusion_matrix <-
   caret::confusionMatrix(predictions,
-                         pima_indians_diabetes_test[, 1:9]$diabetes)
+                         census_test[, 1:9]$income)
 print(confusion_matrix)
 
 ### Option 3: Display a graphical confusion matrix ----
@@ -273,7 +276,7 @@ set.seed(7)
 # We apply simple random sampling using the base::sample function to get
 # 10 samples
 train_index <- sample(1:dim(longley)[1], 10) # nolint: seq_linter.
-longley_train <- longley[train_nb ]
+longley_train <- longley[train_index, ]
 longley_test <- longley[-train_index, ]
 
 

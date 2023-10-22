@@ -107,23 +107,24 @@ library(readr)
 It is used in cases where classification problems that do not have an equal distribution of instances amongst the classes in the dataset.
 
 ## Load the Dataset
-We then proceeded to load the PimaIndians dataset
+We then proceeded to load the census dataset
 
 ```{r Your second Code Chunk}
-data(PimaIndiansDiabetes)
-
+library(readr)
+census <- read_csv("../data/census.csv")
+View(census)
 ```
 
 ## Determine the Baseline Accuracy
-Identify the number of instances that belong to each class (distribution or class breakdown).
-When the code is run,it results in  65% tested negative and 34% tested positive for diabetes.
-We should work with the majority hence PimaIndiansDiabetes belongs to class negative.
+
+Identify the number of instances that belong to each class (distribution or
+class breakdown).The result should show that 75% earn below or equal to 50K and 24% earn above 50K for income.This means that an algorithm can achieve a 75% accuracy by predicting that all instances belong to the class "below or equal to 50k".This in turn implies that the baseline accuracy is 75%.
 
 ```{r Your third  Code Chunk}
-pima_indians_diabetes_freq <- PimaIndiansDiabetes$diabetes
+census_freq <- census$income
 cbind(frequency =
-        table(pima_indians_diabetes_freq),
-      percentage = prop.table(table(pima_indians_diabetes_freq)) * 100)
+        table(census_freq),
+      percentage = prop.table(table(census_freq)) * 100)
 
 ```
 
@@ -133,11 +134,11 @@ In our case 75% is used for training the dataset and the remaining 25% is used f
 list= false means we retain the structure
 train_index means the 75% that will be used for training the dataset and -train_index means the remaining portion that was not used will now be used for testing the dataset.
 ```{r Your fourth Code Chunk}
-train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+train_index <- createDataPartition(census$income,
                                    p = 0.75,
                                    list = FALSE)
-pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
-pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+census_train <- census[train_index, ]
+census_test <- census[-train_index, ]
 
 ```
 
@@ -151,17 +152,17 @@ train_control <- trainControl(method = "cv", number = 5)
 
 ```
 
-### Train a Generalized Linear Model to predict the value of Diabetes
+### Train a Generalized Linear Model to predict the value of Income
 seed(7)will ensure we get the same "random" numbers.
 The method used is generalized linear model and the metric used is Accuracy.
-In the code below we are predicting Diabetes which is the dependent variable in line with the other independent variables.
+In the code below we are predicting census data which is the dependent variable in line with the other independent variables.
 
 ```{r Your sixth Code Chunk}
-set.seed(7)
-diabetes_model_glm <-
-  train(diabetes ~ ., data = pima_indians_diabetes_train, method = "glm",
-        metric = "Accuracy", trControl = train_control)
 
+set.seed(7)
+income_model_glm <-
+  train(income ~ ., data = census_train, method = "glm",
+        metric = "Accuracy", trControl = train_control)
 ```
 
 ## Display the Model's Performance
@@ -171,7 +172,7 @@ There are various ways to display the model's performance.
 The result acquired after running the code is an Accuracy of 78% and Kappa of 50% .We notice the Accuracy is higher than the baseline accuracy.
 
 ```{r Your seventh Code Chunk}
-print(diabetes_model_glm)
+print(income_model_glm)
 
 ```
 
@@ -180,10 +181,10 @@ We use a confusion matrix for multi-class classification problems.
 The Confusion Matrix visualize the predicted values against the actual values.
 
 ```{r Your eigth Code Chunk}
-predictions <- predict(diabetes_model_glm, pima_indians_diabetes_test[, 1:8])
+predictions <- predict(income_model_glm, census_test[, 1:13])
 confusion_matrix <-
-  caret::confusionMatrix(predictions,
-                         pima_indians_diabetes_test[, 1:9]$diabetes)
+  caret::confusionMatrix(predictions,as.factor(
+                         census_test[, 1:14]$income))
 print(confusion_matrix)
 
 ```
@@ -192,7 +193,7 @@ print(confusion_matrix)
 Here is where the confusion matrix is shown in light blue and grey.
 
 ```{r Your ninth Code Chunk}
-fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "navyblue"),
              main = "Confusion Matrix")
 
 ```
@@ -315,7 +316,7 @@ print(paste("MAE =", mae))
 
 ## 3.a. Load the dataset
 ```{r Your twentithird Code Chunk}
-data(PimaIndiansDiabetes)
+
 library(readr)
 Customer_Churn <- read_csv("../data/Customer Churn.csv")
 Customer_Churn$Churn <- ifelse(Customer_Churn$Churn == 0, "No", "Yes")
