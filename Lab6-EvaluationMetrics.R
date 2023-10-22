@@ -275,6 +275,7 @@ train_index <- sample(1:dim(longley)[1], 10) # nolint: seq_linter.
 longley_train <- longley[train_index, ]
 longley_test <- longley[-train_index, ]
 
+
 ## 2.c. Train the Model ----
 # We apply bootstrapping with 1,000 repetitions
 train_control <- trainControl(method = "boot", number = 1000)
