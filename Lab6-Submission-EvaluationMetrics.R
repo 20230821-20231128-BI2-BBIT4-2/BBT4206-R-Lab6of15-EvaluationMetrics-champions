@@ -105,6 +105,27 @@ if (require("languageserver")) {
                    repos = "https://cloud.r-project.org")
 }
 
+# Introduction ----
+# The choice of evaluation metric depends on the specific problem,
+# the characteristics of the data, and the goals of the modeling task.
+# It's often a good practice to use multiple evaluation metrics to gain a more
+# comprehensive understanding of a model's performance.
+
+# There are several evaluation metrics that can be used to evaluate algorithms.
+# The default metrics used are:
+## (1) "Accuracy" for classification problems and
+## (2) "RMSE" for regression problems
+
+# Accuracy is the percentage of correctly classified instances out of all
+# instances. Accuracy is more useful in binary classification problems than
+# in multi-class classification problems.
+
+# On the other hand, Cohen's Kappa is similar to Accuracy however, it is more
+# useful on classification problems that do not have an equal distribution of
+# instances amongst the classes in the dataset.
+
+# For example, instead of Red are 50 instances and Blue are 50 instances,
+# the distribution can be that Red are 70 instances and Blue are 30 instances.
 
 
 # STEP 1. Install and Load the Required Packages ----
@@ -148,80 +169,58 @@ if (require("dplyr")) {
                    repos = "https://cloud.r-project.org")
 }
 
-library(readr)
-
 # 1. Accuracy and Cohen's Kappa ----
-# Introduction ----
-# The choice of evaluation metric depends on the specific problem,
-# the characteristics of the data, and the goals of the modeling task.
-# It's often a good practice to use multiple evaluation metrics to gain a more
-# comprehensive understanding of a model's performance.
-
-# There are several evaluation metrics that can be used to evaluate algorithms.
-# The default metrics used are:
-## (1) "Accuracy" for classification problems and
-## (2) "RMSE" for regression problems
-
-# Accuracy is the percentage of correctly classified instances out of all
-# instances. Accuracy is more useful in binary classification problems than
-# in multi-class classification problems.
-
-# On the other hand, Cohen's Kappa is similar to Accuracy however, it is more
-# useful on classification problems that do not have an equal distribution of
-# instances amongst the classes in the dataset.
-
-# For example, instead of Red are 50 instances and Blue are 50 instances,
-# the distribution can be that Red are 70 instances and Blue are 30 instances.
 ## 1.a. Load the dataset ----
-data(PimaIndiansDiabetes)
+library(readr)
+census <- read_csv("data/census.csv")
+View(census)
 
 ## 1.b. Determine the Baseline Accuracy ----
 # Identify the number of instances that belong to each class (distribution or
 # class breakdown).
 
-# The result should show that 65% tested negative and 34% tested positive
-# for diabetes.
+# The result should show that 75% earn below or equal to 50K and 24% earn above 50K
+# for quality.
 
-# This means that an algorithm can achieve a 65% accuracy by
-# predicting that all instances belong to the class "negative".
+# This means that an algorithm can achieve a 75% accuracy by
+# predicting that all instances belong to the class "below or equal to 50k".
 
-# This in turn implies that the baseline accuracy is 65%.
+# This in turn implies that the baseline accuracy is 75%.
 
-pima_indians_diabetes_freq <- PimaIndiansDiabetes$diabetes
+census_freq <- census$quality
 cbind(frequency =
-        table(pima_indians_diabetes_freq),
-      percentage = prop.table(table(pima_indians_diabetes_freq)) * 100)
+        table(census_freq),
+      percentage = prop.table(table(census_freq)) * 100)
 
 ## 1.c. Split the dataset ----
 # Define a 75:25 train:test data split of the dataset.
 # That is, 75% of the original data will be used to train the model and
 # 25% of the original data will be used to test the model.
-train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+train_index <- createDataPartition(census$quality,
                                    p = 0.75,
                                    list = FALSE)
-pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
-pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+census_train <- census[train_index, ]
+census_test <- census[-train_index, ]
 
 ## 1.d. Train the Model ----
 # We apply the 5-fold cross validation resampling method
 train_control <- trainControl(method = "cv", number = 5)
 
-# We then train a Generalized Linear Model to predict the value of Diabetes
-# (whether the patient will test positive/negative for diabetes).
+# We then train a Generalized Linear Model to predict the value of quality
+# (whether the patient will earn below or equal to 50k/above 50k).
 
 # `set.seed()` is a function that is used to specify a starting point for the
 # random number generator to a specific value. This ensures that every time you
 # run the same code, you will get the same "random" numbers.
 set.seed(7)
-diabetes_model_glm <-
-  train(diabetes ~ ., data = pima_indians_diabetes_train, method = "glm",
+quality_model_glm <-
+  train(quality ~ ., data = census_train, method = "glm",
         metric = "Accuracy", trControl = train_control)
 
 ## 1.e. Display the Model's Performance ----
 ### Option 1: Use the metric calculated by caret when training the model ----
-# The results show an accuracy of approximately 77% (slightly above the baseline
-# accuracy) and a Kappa of approximately 49%.
-print(diabetes_model_glm)
+# The results show an accuracy of approximately 84% and a Kappa of approximately 56%.
+print(quality_model_glm)
 
 ### Option 2: Compute the metric yourself using the test dataset ----
 # A confusion matrix is useful for multi-class classification problems.
@@ -232,10 +231,10 @@ print(diabetes_model_glm)
 # confusion matrix represent predicted values and column headers are used to
 # represent actual values.
 
-predictions <- predict(diabetes_model_glm, pima_indians_diabetes_test[, 1:8])
+predictions <- predict(quality_model_glm, census_test[, 1:13])
 confusion_matrix <-
-  caret::confusionMatrix(predictions,
-                         pima_indians_diabetes_test[, 1:9]$diabetes)
+  caret::confusionMatrix(predictions,as.factor(
+                         census_test[, 1:14]$quality))
 print(confusion_matrix)
 
 ### Option 3: Display a graphical confusion matrix ----

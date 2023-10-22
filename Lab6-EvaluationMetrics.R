@@ -273,7 +273,7 @@ set.seed(7)
 # We apply simple random sampling using the base::sample function to get
 # 10 samples
 train_index <- sample(1:dim(longley)[1], 10) # nolint: seq_linter.
-longley_train <- longley[train_index, ]
+longley_train <- longley[train_nb ]
 longley_test <- longley[-train_index, ]
 
 ## 2.c. Train the Model ----
