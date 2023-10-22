@@ -221,29 +221,45 @@ equal distribution of instances amongst the classes in the dataset.
 
 ## Load the Dataset
 
-We then proceeded to load the PimaIndians dataset
+We then proceeded to load the census dataset
 
 ``` r
-data(PimaIndiansDiabetes)
+library(readr)
+census <- read_csv("../data/census.csv")
+```
+
+    ## Rows: 45222 Columns: 14
+    ## ── Column specification ────────────────────────────────────────────────────────
+    ## Delimiter: ","
+    ## chr (9): workclass, education_level, marital_status, occupation, relationshi...
+    ## dbl (5): age, education-num, capital-gain, capital-loss, hours-per-week
+    ## 
+    ## ℹ Use `spec()` to retrieve the full column specification for this data.
+    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
+View(census)
 ```
 
 ## Determine the Baseline Accuracy
 
 Identify the number of instances that belong to each class (distribution
-or class breakdown). When the code is run,it results in 65% tested
-negative and 34% tested positive for diabetes. We should work with the
-majority hence PimaIndiansDiabetes belongs to class negative.
+or class breakdown).The result should show that 75% earn below or equal
+to 50K and 24% earn above 50K for income.This means that an algorithm
+can achieve a 75% accuracy by predicting that all instances belong to
+the class “below or equal to 50k”.This in turn implies that the baseline
+accuracy is 75%.
 
 ``` r
-pima_indians_diabetes_freq <- PimaIndiansDiabetes$diabetes
+census_freq <- census$income
 cbind(frequency =
-        table(pima_indians_diabetes_freq),
-      percentage = prop.table(table(pima_indians_diabetes_freq)) * 100)
+        table(census_freq),
+      percentage = prop.table(table(census_freq)) * 100)
 ```
 
-    ##     frequency percentage
-    ## neg       500   65.10417
-    ## pos       268   34.89583
+    ##       frequency percentage
+    ## <=50K     34014    75.2156
+    ## >50K      11208    24.7844
 
 ## Split the dataset
 
@@ -255,11 +271,11 @@ be used for training the dataset and -train_index means the remaining
 portion that was not used will now be used for testing the dataset.
 
 ``` r
-train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+train_index <- createDataPartition(census$income,
                                    p = 0.75,
                                    list = FALSE)
-pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
-pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+census_train <- census[train_index, ]
+census_test <- census[-train_index, ]
 ```
 
 ## Train the Model
@@ -277,13 +293,13 @@ train_control <- trainControl(method = "cv", number = 5)
 
 seed(7)will ensure we get the same “random” numbers. The method used is
 generalized linear model and the metric used is Accuracy. In the code
-below we are predicting Diabetes which is the dependent variable in line
-with the other independent variables.
+below we are predicting census data which is the dependent variable in
+line with the other independent variables.
 
 ``` r
 set.seed(7)
-diabetes_model_glm <-
-  train(diabetes ~ ., data = pima_indians_diabetes_train, method = "glm",
+income_model_glm <-
+  train(income ~ ., data = census_train, method = "glm",
         metric = "Accuracy", trControl = train_control)
 ```
 
@@ -298,22 +314,22 @@ Kappa of 50% .We notice the Accuracy is higher than the baseline
 accuracy.
 
 ``` r
-print(diabetes_model_glm)
+print(income_model_glm)
 ```
 
     ## Generalized Linear Model 
     ## 
-    ## 576 samples
-    ##   8 predictor
-    ##   2 classes: 'neg', 'pos' 
+    ## 33917 samples
+    ##    13 predictor
+    ##     2 classes: '<=50K', '>50K' 
     ## 
     ## No pre-processing
     ## Resampling: Cross-Validated (5 fold) 
-    ## Summary of sample sizes: 461, 461, 460, 461, 461 
+    ## Summary of sample sizes: 27134, 27134, 27133, 27134, 27133 
     ## Resampling results:
     ## 
     ##   Accuracy   Kappa    
-    ##   0.7743628  0.4861869
+    ##   0.8474217  0.5647964
 
 ### Compute the metric yourself using the test dataset
 
@@ -322,39 +338,39 @@ Confusion Matrix visualize the predicted values against the actual
 values.
 
 ``` r
-predictions <- predict(diabetes_model_glm, pima_indians_diabetes_test[, 1:8])
+predictions <- predict(income_model_glm, census_test[, 1:13])
 confusion_matrix <-
-  caret::confusionMatrix(predictions,
-                         pima_indians_diabetes_test[, 1:9]$diabetes)
+  caret::confusionMatrix(predictions,as.factor(
+                         census_test[, 1:14]$income))
 print(confusion_matrix)
 ```
 
     ## Confusion Matrix and Statistics
     ## 
     ##           Reference
-    ## Prediction neg pos
-    ##        neg 113  38
-    ##        pos  12  29
+    ## Prediction <=50K >50K
+    ##      <=50K  7903 1130
+    ##      >50K    600 1672
     ##                                           
-    ##                Accuracy : 0.7396          
-    ##                  95% CI : (0.6715, 0.8001)
-    ##     No Information Rate : 0.651           
-    ##     P-Value [Acc > NIR] : 0.005432        
+    ##                Accuracy : 0.847           
+    ##                  95% CI : (0.8402, 0.8536)
+    ##     No Information Rate : 0.7521          
+    ##     P-Value [Acc > NIR] : < 2.2e-16       
     ##                                           
-    ##                   Kappa : 0.3702          
+    ##                   Kappa : 0.5618          
     ##                                           
-    ##  Mcnemar's Test P-Value : 0.000407        
+    ##  Mcnemar's Test P-Value : < 2.2e-16       
     ##                                           
-    ##             Sensitivity : 0.9040          
-    ##             Specificity : 0.4328          
-    ##          Pos Pred Value : 0.7483          
-    ##          Neg Pred Value : 0.7073          
-    ##              Prevalence : 0.6510          
-    ##          Detection Rate : 0.5885          
-    ##    Detection Prevalence : 0.7865          
-    ##       Balanced Accuracy : 0.6684          
+    ##             Sensitivity : 0.9294          
+    ##             Specificity : 0.5967          
+    ##          Pos Pred Value : 0.8749          
+    ##          Neg Pred Value : 0.7359          
+    ##              Prevalence : 0.7521          
+    ##          Detection Rate : 0.6991          
+    ##    Detection Prevalence : 0.7990          
+    ##       Balanced Accuracy : 0.7631          
     ##                                           
-    ##        'Positive' Class : neg             
+    ##        'Positive' Class : <=50K           
     ## 
 
 ### Display a graphical confusion matrix
@@ -362,7 +378,7 @@ print(confusion_matrix)
 Here is where the confusion matrix is shown in light blue and grey.
 
 ``` r
-fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "navyblue"),
              main = "Confusion Matrix")
 ```
 

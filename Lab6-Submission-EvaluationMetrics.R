@@ -187,7 +187,7 @@ View(census)
 
 # This in turn implies that the baseline accuracy is 75%.
 
-census_freq <- census$quality
+census_freq <- census$income
 cbind(frequency =
         table(census_freq),
       percentage = prop.table(table(census_freq)) * 100)
@@ -196,7 +196,7 @@ cbind(frequency =
 # Define a 75:25 train:test data split of the dataset.
 # That is, 75% of the original data will be used to train the model and
 # 25% of the original data will be used to test the model.
-train_index <- createDataPartition(census$quality,
+train_index <- createDataPartition(census$income,
                                    p = 0.75,
                                    list = FALSE)
 census_train <- census[train_index, ]
@@ -213,14 +213,14 @@ train_control <- trainControl(method = "cv", number = 5)
 # random number generator to a specific value. This ensures that every time you
 # run the same code, you will get the same "random" numbers.
 set.seed(7)
-quality_model_glm <-
-  train(quality ~ ., data = census_train, method = "glm",
+income_model_glm <-
+  train(income ~ ., data = census_train, method = "glm",
         metric = "Accuracy", trControl = train_control)
 
 ## 1.e. Display the Model's Performance ----
 ### Option 1: Use the metric calculated by caret when training the model ----
 # The results show an accuracy of approximately 84% and a Kappa of approximately 56%.
-print(quality_model_glm)
+print(income_model_glm)
 
 ### Option 2: Compute the metric yourself using the test dataset ----
 # A confusion matrix is useful for multi-class classification problems.
@@ -231,10 +231,10 @@ print(quality_model_glm)
 # confusion matrix represent predicted values and column headers are used to
 # represent actual values.
 
-predictions <- predict(quality_model_glm, census_test[, 1:13])
+predictions <- predict(income_model_glm, census_test[, 1:13])
 confusion_matrix <-
   caret::confusionMatrix(predictions,as.factor(
-                         census_test[, 1:14]$quality))
+                         census_test[, 1:14]$income))
 print(confusion_matrix)
 
 ### Option 3: Display a graphical confusion matrix ----
