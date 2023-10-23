@@ -105,27 +105,7 @@ if (require("languageserver")) {
                    repos = "https://cloud.r-project.org")
 }
 
-# Introduction ----
-# The choice of evaluation metric depends on the specific problem,
-# the characteristics of the data, and the goals of the modeling task.
-# It's often a good practice to use multiple evaluation metrics to gain a more
-# comprehensive understanding of a model's performance.
 
-# There are several evaluation metrics that can be used to evaluate algorithms.
-# The default metrics used are:
-## (1) "Accuracy" for classification problems and
-## (2) "RMSE" for regression problems
-
-# Accuracy is the percentage of correctly classified instances out of all
-# instances. Accuracy is more useful in binary classification problems than
-# in multi-class classification problems.
-
-# On the other hand, Cohen's Kappa is similar to Accuracy however, it is more
-# useful on classification problems that do not have an equal distribution of
-# instances amongst the classes in the dataset.
-
-# For example, instead of Red are 50 instances and Blue are 50 instances,
-# the distribution can be that Red are 70 instances and Blue are 30 instances.
 
 # STEP 1. Install and Load the Required Packages ----
 ## ggplot2 ----
@@ -169,6 +149,27 @@ if (require("dplyr")) {
 }
 
 # 1. Accuracy and Cohen's Kappa ----
+# Introduction ----
+# The choice of evaluation metric depends on the specific problem,
+# the characteristics of the data, and the goals of the modeling task.
+# It's often a good practice to use multiple evaluation metrics to gain a more
+# comprehensive understanding of a model's performance.
+
+# There are several evaluation metrics that can be used to evaluate algorithms.
+# The default metrics used are:
+## (1) "Accuracy" for classification problems and
+## (2) "RMSE" for regression problems
+
+# Accuracy is the percentage of correctly classified instances out of all
+# instances. Accuracy is more useful in binary classification problems than
+# in multi-class classification problems.
+
+# On the other hand, Cohen's Kappa is similar to Accuracy however, it is more
+# useful on classification problems that do not have an equal distribution of
+# instances amongst the classes in the dataset.
+
+# For example, instead of Red are 50 instances and Blue are 50 instances,
+# the distribution can be that Red are 70 instances and Blue are 30 instances.
 ## 1.a. Load the dataset ----
 data(PimaIndiansDiabetes)
 
@@ -272,8 +273,9 @@ set.seed(7)
 # We apply simple random sampling using the base::sample function to get
 # 10 samples
 train_index <- sample(1:dim(longley)[1], 10) # nolint: seq_linter.
-longley_train <- longley[train_index, ]
+longley_train <- longley[train_nb ]
 longley_test <- longley[-train_index, ]
+
 
 ## 2.c. Train the Model ----
 # We apply bootstrapping with 1,000 repetitions

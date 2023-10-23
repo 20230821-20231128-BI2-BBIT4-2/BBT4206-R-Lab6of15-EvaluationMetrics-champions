@@ -1,0 +1,473 @@
+---
+title: "Business Intelligence Project"
+author: "<Champions>"
+date: "<22/10/2023>"
+output:
+  github_document: 
+    toc: yes
+    toc_depth: 4
+    fig_width: 6
+    fig_height: 4
+    df_print: default
+editor_options:
+  chunk_output_type: console
+---
+
+# Student Details
+
++----------------------------------------------+-----------------------+
+| **Student ID Number**                        | 134111                |
+|                                              |                       |
+|                                              | 133996                |
+|                                              |                       |
+|                                              | 126761                |
+|                                              |                       |
+|                                              | 135859                |
+|                                              |                       |
+|                                              | 127707                |
++----------------------------------------------+-----------------------+
+| **Student Name**                             | Juma Immaculate Haayo |
+|                                              |                       |
+|                                              | Trevor Ngugi          |
+|                                              |                       |
+|                                              | Virginia Wanjiru      |
+|                                              |                       |
+|                                              | Pauline Wang'ombe     |
+|                                              |                       |
+|                                              | Clarice Gitonga       |
++----------------------------------------------+-----------------------+
+| **BBIT 4.2 Group**                           | B                     |
++----------------------------------------------+-----------------------+
+| **BI Project Group Name/ID (if applicable)** | Champions             |
++----------------------------------------------+-----------------------+
+
+# Setup Chunk
+
+**Note:** the following KnitR options have been set as the global defaults: <BR> `knitr::opts_chunk$set(echo = TRUE, warning = FALSE, eval = TRUE, collapse = FALSE, tidy = TRUE)`.
+
+More KnitR options are documented here <https://bookdown.org/yihui/rmarkdown-cookbook/chunk-options.html> and here <https://yihui.org/knitr/options/>.
+
+```{r setup, include=FALSE}
+library(formatR)
+knitr::opts_chunk$set(
+  warning = FALSE,
+  collapse = FALSE
+)
+```
+
+# STEP 1 : Install and load all the packages
+We installed all the packages that will enable us execute this lab.
+```{r Your first Code Chunk}
+## ggplot2 ----
+if (require("ggplot2")) {
+  require("ggplot2")
+} else {
+  install.packages("ggplot2", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
+## caret ----
+if (require("caret")) {
+  require("caret")
+} else {
+  install.packages("caret", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
+## mlbench ----
+if (require("mlbench")) {
+  require("mlbench")
+} else {
+  install.packages("mlbench", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
+## pROC ----
+if (require("pROC")) {
+  require("pROC")
+} else {
+  install.packages("pROC", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
+## dplyr ----
+if (require("dplyr")) {
+  require("dplyr")
+} else {
+  install.packages("dplyr", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
+library(readr)
+
+
+```
+
+# Accuracy and Cohen's Kappa
+It is used in cases where classification problems that do not have an equal distribution of instances amongst the classes in the dataset.
+
+## Load the Dataset
+We then proceeded to load the census dataset
+
+```{r Your second Code Chunk}
+library(readr)
+census <- read_csv("../data/census.csv")
+View(census)
+```
+
+## Determine the Baseline Accuracy
+
+Identify the number of instances that belong to each class (distribution or
+class breakdown).The result should show that 75% earn below or equal to 50K and 24% earn above 50K for income.This means that an algorithm can achieve a 75% accuracy by predicting that all instances belong to the class "below or equal to 50k".This in turn implies that the baseline accuracy is 75%.
+
+```{r Your third  Code Chunk}
+census_freq <- census$income
+cbind(frequency =
+        table(census_freq),
+      percentage = prop.table(table(census_freq)) * 100)
+
+```
+
+## Split the dataset
+Here, we split the dataset so that some portion of it is used for training and another for training.
+In our case 75% is used for training the dataset and the remaining 25% is used for testing the dataset.
+list= false means we retain the structure
+train_index means the 75% that will be used for training the dataset and -train_index means the remaining portion that was not used will now be used for testing the dataset.
+```{r Your fourth Code Chunk}
+train_index <- createDataPartition(census$income,
+                                   p = 0.75,
+                                   list = FALSE)
+census_train <- census[train_index, ]
+census_test <- census[-train_index, ]
+
+```
+
+## Train the Model
+The model can be trained by first applying a 5 fold cross validation method then train a generalized linear model on the dataset.
+
+### Apply 5 fold cross validation resampling method
+
+```{r Your fifth  Code Chunk}
+train_control <- trainControl(method = "cv", number = 5)
+
+```
+
+### Train a Generalized Linear Model to predict the value of Income
+seed(7)will ensure we get the same "random" numbers.
+The method used is generalized linear model and the metric used is Accuracy.
+In the code below we are predicting census data which is the dependent variable in line with the other independent variables.
+
+```{r Your sixth Code Chunk}
+
+set.seed(7)
+income_model_glm <-
+  train(income ~ ., data = census_train, method = "glm",
+        metric = "Accuracy", trControl = train_control)
+```
+
+## Display the Model's Performance
+There are various ways to display the model's performance.
+
+### Use the metric calculated by caret when training the model
+The result acquired after running the code is an Accuracy of 78% and Kappa of 50% .We notice the Accuracy is higher than the baseline accuracy.
+
+```{r Your seventh Code Chunk}
+print(income_model_glm)
+
+```
+
+### Compute the metric yourself using the test dataset
+We use a confusion matrix for multi-class classification problems.
+The Confusion Matrix visualize the predicted values against the actual values.
+
+```{r Your eigth Code Chunk}
+predictions <- predict(income_model_glm, census_test[, 1:13])
+confusion_matrix <-
+  caret::confusionMatrix(predictions,as.factor(
+                         census_test[, 1:14]$income))
+print(confusion_matrix)
+
+```
+
+### Display a graphical confusion matrix
+Here is where the confusion matrix is shown in light blue and grey.
+
+```{r Your ninth Code Chunk}
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "navyblue"),
+             main = "Confusion Matrix")
+
+```
+
+# STEP 2 : RMSE, R Squared, and MAE
+
+## 2.a. Load the dataset
+```{r Your tenth Code Chunk}
+Student_Marks <- read_csv("../data/Student_Marks.csv")
+View(Student_Marks)
+student_no_na <- na.omit(Student_Marks)
+
+```
+
+## 2.b. Split the dataset
+A portion of the dataset is used to train and another to test.
+
+### Perform reproducibility
+The code below ensures we get the same "random" samples
+
+```{r Your eleventh Code Chunk}
+set.seed(7)
+```
+
+### Apply simple random sampling using the base
+We have applied a function to get 10 samples
+
+```{r Your twelveth Code Chunk}
+
+train_index <- sample(1:dim(Student_Marks)[1], 10) # nolint: seq_linter.
+Student_Marks_train <- Student_Marks[train_index, ]
+Student_Marks_test <- Student_Marks[-train_index, ]
+
+```
+
+## 2.c. Train the Model
+
+### Apply bootstrapping with 1,000 repetitions
+```{r Your thirteen Code Chunk}
+
+train_control <- trainControl(method = "boot", number = 1000)
+
+```
+
+### Train a linear regression model to predict the value of Employed
+We are calculating the  number of people that will be employed given the independent variables
+
+```{r Your fourteen Code Chunk}
+Student_Marks_model_lm <-
+  train(Marks ~ ., data = Student_Marks_train,
+        na.action = na.omit, method = "lm", metric = "RMSE",
+        trControl = train_control)
+```
+
+## 2.d. Display the Model's Performance
+
+### 1.Use the metric calculated by caret when training the model
+ It results in the RMSE value of approximately 4.3898 and an R Squared value of approximately 0.8594
+(the closer the R squared value is to 1, the better the model).
+
+```{r Your fifteen Code Chunk}
+print(Student_Marks_model_lm)
+
+```
+
+### 2.Compute the metric yourself using the test dataset
+In the code below,we are predicting the student marks by focusing on the first and second variables.
+
+```{r Your sixteen Code Chunk}
+predictions <- predict(Student_Marks_model_lm, Student_Marks_test[, 1:2])
+
+```
+
+#### Print the predictions for employment
+It shows the 6 values for employment that the model has predicted
+
+```{r Your seventeen Code Chunk}
+print(predictions)
+
+```
+
+#### RMSE
+```{r Your eighteen Code Chunk}
+rmse <- sqrt(mean((Student_Marks_test$Marks - predictions)^2))
+print(paste("RMSE =", rmse))
+
+```
+
+#### SSR
+```{r Your nineteen Code Chunk}
+ssr <- sum((Student_Marks_test$Marks - predictions)^2)
+print(paste("SSR =", ssr))
+
+```
+
+#### SST
+```{r Your twentieth Code Chunk}
+sst <- sum((Student_Marks_test$Marks - mean(Student_Marks_test$Marks))^2)
+print(paste("SST =", sst))
+
+```
+
+#### R Squared
+We then use SSR and SST to compute the value of R squared.
+```{r Your twentifirst Code Chunk}
+r_squared <- 1 - (ssr / sst)
+print(paste("R Squared =", r_squared))
+
+```
+
+#### MAE 
+```{r Your twentisecond Code Chunk}
+absolute_errors <- abs(predictions - Student_Marks_test$Marks)
+mae <- mean(absolute_errors)
+print(paste("MAE =", mae))
+
+```
+
+# STEP 3. Area Under ROC Curve
+
+## 3.a. Load the dataset
+```{r Your twentithird Code Chunk}
+
+library(readr)
+Customer_Churn <- read_csv("../data/Customer Churn.csv")
+Customer_Churn$Churn <- ifelse(Customer_Churn$Churn == 0, "No", "Yes")
+
+View(Customer_Churn)
+
+```
+
+## 3.b. Determine the Baseline Accuracy
+The percentages of No and yes is 84 and 16 respectively.
+
+```{r Your twentifourth Code Chunk}
+Customer_Churn_freq <- Customer_Churn$Churn
+cbind(frequency =
+        table(Customer_Churn_freq),
+      percentage = prop.table(table(Customer_Churn_freq)) * 100)
+
+```
+
+## 3.c. Split the dataset 
+80% of the dataset is used for testing and 20% is used for training.
+
+```{r Your twentififth Code Chunk}
+train_index <- createDataPartition(Customer_Churn$Churn,
+                                   p = 0.8,
+                                   list = FALSE)
+Customer_Churn_train <- Customer_Churn[train_index, ]
+Customer_Churns_test <- Customer_Churn[-train_index, ]
+
+```
+
+## 3.d. Train the Model
+
+### Apply the 10-fold cross validation resampling method
+
+```{r Your twentisixth Code Chunk}
+train_control <- trainControl(method = "cv", number = 10,
+                              classProbs = TRUE,
+                              summaryFunction = twoClassSummary)
+
+```
+
+### Train a k Nearest Neighbours Model to predict the value of Diabetes
+
+We want to see whether the patient will test positive/negative for diabetes
+```{r Your twentiseventh Code Chunk}
+set.seed(7)
+churn_model_knn <-
+  train(Churn ~ ., data = Customer_Churn_train, method = "knn",
+        metric = "ROC", trControl = train_control)
+```
+
+## 3.e. Display the Model's Performance
+
+### Use the metric calculated by caret when training the model
+The results show a ROC value of approximately 0.76 (the closer to 1,
+the higher the prediction accuracy) when the parameter k = 9
+(9 nearest neighbours).
+
+```{r Your twentieigth Code Chunk}
+print(churn_model_knn)
+```
+
+### Compute the metric yourself using the test dataset
+
+```{r Your twentininth Code Chunk}
+predictions <- predict(churn_model_knn, Customer_Churns_test[, 1:13])
+
+```
+
+### The values that have been predicted
+
+```{r Your thirtieth Code Chunk}
+print(predictions)
+confusion_matrix <-
+  caret::confusionMatrix(predictions,
+                         as.factor(Customer_Churns_test[, 1:14]$Churn))
+
+```
+
+### Sensitivity and specificity
+
+We can see the sensitivity (≈ 0.86) and the specificity (≈ 0.60) below
+```{r Your thirtifirst Code Chunk}
+print(confusion_matrix)
+
+```
+
+### AUC 
+
+The type = "prob" argument specifies that you want to obtain class
+probabilities as the output of the prediction instead of class labels.
+```{r Your thirtisecond Code Chunk}
+predictions <- predict(churn_model_knn, Customer_Churns_test[, 1:13],
+                       type = "prob")
+
+```
+
+### Class predictions 
+These are the class probability values for diabetes that the
+model has predicted
+
+```{r Your thirtithird Code Chunk}
+print(predictions)
+```
+
+### Setting the Direction
+```{r Your thirtifourth Code Chunk}
+roc_curve <- roc(Customer_Churns_test$Churn, predictions$No)
+```
+
+### Plot the ROC curve
+```{r Yourthirtififth Code Chunk}
+plot(roc_curve, main = "ROC Curve for KNN Model", print.auc = TRUE,
+     print.auc.x = 0.6, print.auc.y = 0.6, col = "blue", lwd = 2.5)
+```
+
+# STEP 4. Logarithmic Loss (LogLoss)
+
+## 4.a. Load the dataset
+```{r Your thirtisixth Code Chunk}
+library(readr)
+Crop_recommendation <- read_csv("../data/Crop_recommendation.csv")
+View(Crop_recommendation)
+```
+
+## 4.b. Train the Model
+We apply the 5-fold repeated cross validation resampling method
+with 3 repeats
+```{r Your thirtiseventh Code Chunk}
+train_control <- trainControl(method = "repeatedcv", number = 5, repeats = 3,
+                              classProbs = TRUE,
+                              summaryFunction = mnLogLoss)
+set.seed(7)
+```
+
+### Create a CART
+One of the parameters used by a CART model is "cp". "cp" refers to the "complexity parameter". It is used to impose a penalty to
+the tree for having too many splits. The default value is 0.01.
+
+```{r Your thirtieigth Code Chunk}
+crop_model_cart <- train(label ~ ., data = Crop_recommendation, method = "rpart",
+                         metric = "logLoss", trControl = train_control)
+```
+
+## 4.c. Display the Model's Performance
+
+### Use the metric calculated by caret when training the model
+The results show that a cp value of ≈ 0 resulted in the lowest LogLoss value. The lowest logLoss value is ≈ 0.46.
+```{r Your thirtininth Code Chunk}
+print(crop_model_cart)
+```
+
+
